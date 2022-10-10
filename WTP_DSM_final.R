@@ -49,11 +49,35 @@ colnames(WTP_DSM_final) = c("country","WTP_DSM","Total",  "WTP",  "annual_discou
 
 
 WTP_DSM_final$mean_reference = WTP_DSM_final$WTP/mean(WTP_DSM_final$WTP)
+
+
+############################
+# CREATE LIKERT FROM RAW DSM
+#
+install.packages('likert')
+library(likert)
+head(DSM)
+cnames = cbind.data.frame(df2$country.x, df2$countryname)
+colnames(cnames) = c('cntrycode',"country")
+cnames = unique(cnames)
+DSM = merge(DSM, cnames, all.x = TRUE)
+DSM$WTP_DSM = ''
+DSM$WTP_DSM[DSM$Q70 =="1"] = "very unlikely"
+DSM$WTP_DSM[DSM$Q70 =="2"] = "unlikely"
+DSM$WTP_DSM[DSM$Q70 =="3"] = "indifferent"
+DSM$WTP_DSM[DSM$Q70 =="4"] = "likely"
+DSM$WTP_DSM[DSM$Q70 =="5"] = "very likely"
+
+DSM$WTP_DSM = factor(DSM$WTP_DSM,levels = c("very unlikely","unlikely",'indifferent',"likely","very likely"))
+likt = likert(DSM[,5, drop= FALSE], grouping = DSM$country)
+plot(likt)
+############################
 ########################
 # bring in info from lit review
 ########################
 library(data.table)
-df_lit = read_excel("C:/Users/AK194059/Desktop/DR summaryV2.xlsx")
+df_lit = read_excel("I:/Projekte/OpenEntrance - WV0173/Durchführungsphase/WP6/CS1/OE_data_analysis/openEntrance/Lit Review/DR summaryV2.xlsx")
+head(df_lit)
 df_lit$pubID = rownames(df)
 
 dflong = melt(setDT(df_lit), id.vars = c("...1","continent", "payment", "country","Type of DR","hypothetical"), 
@@ -121,10 +145,14 @@ final[,2:12] = round(final[,2:12], digits = 1)
 colnames(final) = c("country","N",  "pct.yes",  "bid value", "mean_reference" , "AC",     "SH",     "WH","EV",     "Wash",   "FRRF",   "Other")          
 final = final[,2:12]
 final = final[, c(1:4,9,10,5,7,6,8,11)]
-
+temp  = as.data.frame(colSums(final)/31)
+colnames(temp) = 'mean'
+final = rbind(final,temp$mean)
+final[,c(1:ncol(final))] = round(final[,c(1:ncol(final))],digits = 2)
+final[,c(1:3)] = round(final[,c(1:3)],digits = 0)
 library(xtable)
 xtable(final, display=rep("s",ncol(final)+1))
 
-temp  = as.data.frame(colSums(final)/31)
-colnames(temp) = 'mean'
-temp$mean
+write.csv(final, "I:/Projekte/OpenEntrance - WV0173/Durchführungsphase/WP6/CS1/OE_data_analysis/openEntrance/data/participation_rates_country.csv")
+sum(final$N)
+
